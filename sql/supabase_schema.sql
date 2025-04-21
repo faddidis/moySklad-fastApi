@@ -14,6 +14,7 @@ create table if not exists public.products (
   image_url text,
   category_id uuid references public.categories(id),
   prices jsonb,
+  stock jsonb,
   created_at timestamp default now()
 );
 
@@ -36,14 +37,14 @@ create table if not exists public.sync_status (
 );
 
 -- Склады
-create table if not exists public.stores (
-  id uuid primary key,
-  name text not null
-);
+-- create table if not exists public.stores (
+--   id uuid primary key,
+--   name text not null
+-- );
 
 -- Включаем RLS
 alter table public.categories enable row level security;
 alter table public.products enable row level security;
 alter table public.modifications enable row level security;
 alter table public.sync_status enable row level security;
-alter table public.stores enable row level security;
+-- alter table public.stores enable row level security;
