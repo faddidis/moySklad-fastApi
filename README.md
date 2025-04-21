@@ -14,9 +14,16 @@ moySklad-fastApi/
 │   ├── core/
 │   ├── db/
 │   ├── services/
+|   |    |    └──products.py    
+|   |    |    └──categories.py
+|   |    |    └──storages.py
+|   |    |    └──modifications.py
+|   |    |    
+|   |
 │   ├── logger.py
 │   └── main.py
 ├── sql/
+|     └── supabase_schema.sql
 ├── .env.example
 ├── Dockerfile
 ├── docker-compose.yml
