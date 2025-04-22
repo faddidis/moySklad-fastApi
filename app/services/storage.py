@@ -1,3 +1,4 @@
+import httpx
 from app.db.supabase_client import supabase
 from app.core import config
 
