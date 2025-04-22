@@ -34,7 +34,8 @@ async def sync_products():
             raise # Re-raise the exception to be caught by the main handler
 
         price_response.raise_for_status() # Check status after parsing
-        price_types = {p["id"]: p["name"] for p in parsed_json["rows"]}
+        # The API returns a list directly, not a dict with "rows"
+        price_types = {p["id"]: p["name"] for p in parsed_json} 
         logger.info(f"Получено {len(price_types)} типов цен")
 
         # Получаем склады как словарь
