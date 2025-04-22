@@ -4,7 +4,10 @@ from app.core import config
 from app.logger import logger
 from app.services.storage import upload_image
 
-headers = {"Authorization": f"Bearer {config.MS_TOKEN}"}
+headers = {
+    "Authorization": f"Bearer {config.MS_TOKEN}",
+    "Accept": "application/json;charset=utf-8"
+}
 
 async def sync_modifications():
     try:
@@ -26,10 +29,11 @@ async def sync_modifications():
                 logger.info(f"Запрашиваем остатки для модификации {mod_id}")
                 stock_resp = httpx.get(stock_url, headers=headers)
                 stock_resp.raise_for_status()
-                stock_data = {
-                    item["stockStore"]["name"]: item["stock"]
-                    for item in stock_resp.json().get("rows", [])
-                }
+                
+                stock_data = {}
+                for item in stock_resp.json().get("rows", []):
+                    if "stockStore" in item and "name" in item["stockStore"]:
+                        stock_data[item["stockStore"]["name"]] = item["stock"]
 
                 prices = {p["priceType"]["meta"]["href"].split("/")[-1]: p["value"] / 100 for p in mod.get("salePrices", [])}
 

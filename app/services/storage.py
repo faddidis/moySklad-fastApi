@@ -6,7 +6,11 @@ async def upload_image(item):
     if "images" in item and item["images"]["meta"]["size"] > 0:
         img_meta = item["images"]["rows"][0]
         url = img_meta["meta"]["downloadHref"]
-        image_data = httpx.get(url, headers={"Authorization": f"Bearer {config.MS_TOKEN}"}).content
+        headers = {
+            "Authorization": f"Bearer {config.MS_TOKEN}",
+            "Accept": "application/json;charset=utf-8"
+        }
+        image_data = httpx.get(url, headers=headers).content
 
         file_name = f"{item['id']}.jpg"
         supabase.storage.from_(config.SUPABASE_STORAGE_BUCKET).upload(file_name, image_data, {"content-type": "image/jpeg"})

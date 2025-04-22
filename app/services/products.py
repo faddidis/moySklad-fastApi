@@ -4,7 +4,10 @@ from app.core import config
 from app.logger import logger
 from app.services.storage import upload_image
 
-headers = {"Authorization": f"Bearer {config.MS_TOKEN}"}
+headers = {
+    "Authorization": f"Bearer {config.MS_TOKEN}",
+    "Accept": "application/json;charset=utf-8"
+}
 
 async def sync_products():
     try:

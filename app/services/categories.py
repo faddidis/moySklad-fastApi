@@ -3,7 +3,10 @@ from app.db.supabase_client import supabase
 from app.core import config
 from app.logger import logger
 
-headers = {"Authorization": f"Bearer {config.MS_TOKEN}"}
+headers = {
+    "Authorization": f"Bearer {config.MS_TOKEN}",
+    "Accept": "application/json;charset=utf-8"
+}
 
 async def sync_categories():
     try:
