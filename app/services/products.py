@@ -1,13 +1,18 @@
 import httpx
+import base64
 from app.db.supabase_client import supabase
 from app.core import config
 from app.logger import logger
 from app.services.storage import upload_image
 
-headers = {
-    "Authorization": f"Bearer {config.MS_TOKEN}",
-    "Accept": "application/json;charset=utf-8"
-}
+# Создаем заголовки с базовой аутентификацией
+def get_headers():
+    # Пробуем с более стандартным подходом к токену
+    return {
+        "Authorization": f"Bearer {config.MS_TOKEN}",
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+    }
 
 async def sync_products():
     try:
@@ -16,7 +21,18 @@ async def sync_products():
         # Получаем типы цен
         prices_url = f"{config.MS_BASE_URL}/entity/priceType"
         logger.info(f"Запрашиваем типы цен: {prices_url}")
+        
+        # Используем новую функцию для получения заголовков
+        headers = get_headers()
+        logger.info(f"Используемые заголовки: {headers}")
+        
+        # Делаем запрос с новыми заголовками
         price_response = httpx.get(prices_url, headers=headers)
+        
+        # Отображаем статус и заголовки ответа для отладки
+        logger.info(f"Статус ответа: {price_response.status_code}")
+        logger.info(f"Заголовки ответа: {price_response.headers}")
+        
         price_response.raise_for_status()
         price_types = {p["id"]: p["name"] for p in price_response.json()["rows"]}
         logger.info(f"Получено {len(price_types)} типов цен")

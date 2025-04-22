@@ -1,15 +1,13 @@
 import httpx
 from app.db.supabase_client import supabase
 from app.core import config
+from app.services.products import get_headers
 
 async def upload_image(item):
     if "images" in item and item["images"]["meta"]["size"] > 0:
         img_meta = item["images"]["rows"][0]
         url = img_meta["meta"]["downloadHref"]
-        headers = {
-            "Authorization": f"Bearer {config.MS_TOKEN}",
-            "Accept": "application/json;charset=utf-8"
-        }
+        headers = get_headers()
         image_data = httpx.get(url, headers=headers).content
 
         file_name = f"{item['id']}.jpg"

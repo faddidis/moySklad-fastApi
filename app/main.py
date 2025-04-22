@@ -6,6 +6,7 @@ from app.core import config
 from app.db.supabase_client import supabase
 from app.logger import logger
 import asyncio
+import time
 
 app = FastAPI()
 app.include_router(routes.router)
@@ -44,14 +45,35 @@ def run_sync_modifications():
     finally:
         loop.close()
 
+def run_full_sync():
+    """Запускаем полную синхронизацию последовательно"""
+    logger.info("Запуск полной синхронизации")
+    run_sync_categories()
+    # Пауза между синхронизациями для предотвращения конфликтов
+    time.sleep(2)
+    run_sync_products()
+    time.sleep(2)
+    run_sync_modifications()
+    logger.info("Полная синхронизация завершена")
+
 @app.on_event("startup")
 async def startup_event():
     logger.info("Запуск планировщика и приложения")
     start_scheduler()
 
-    scheduler.add_job(run_sync_categories, "interval", seconds=config.SYNC_INTERVAL_SECONDS)
-    scheduler.add_job(run_sync_products, "interval", seconds=config.SYNC_INTERVAL_SECONDS)
-    scheduler.add_job(run_sync_modifications, "interval", seconds=config.SYNC_INTERVAL_SECONDS)
+    # Сначала синхронизируем категории
+    scheduler.add_job(run_sync_categories, "interval", seconds=config.SYNC_INTERVAL_SECONDS, id="categories_sync")
+    
+    # Затем запускаем синхронизацию товаров с задержкой в 10 секунд
+    scheduler.add_job(run_sync_products, "interval", seconds=config.SYNC_INTERVAL_SECONDS, 
+                     start_date='2025-04-22 00:00:10', id="products_sync")
+    
+    # Затем запускаем синхронизацию модификаций с задержкой в 20 секунд
+    scheduler.add_job(run_sync_modifications, "interval", seconds=config.SYNC_INTERVAL_SECONDS,
+                     start_date='2025-04-22 00:00:20', id="modifications_sync")
+    
+    # Запускаем немедленную полную синхронизацию
+    scheduler.add_job(run_full_sync, trigger='date', run_date='2025-04-22 00:00:01', id="initial_sync")
 
     supabase.table("sync_status").upsert({"id": 1, "last_sync": "now()"}).execute()
 

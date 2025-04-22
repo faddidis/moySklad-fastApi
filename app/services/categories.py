@@ -2,15 +2,13 @@ import httpx
 from app.db.supabase_client import supabase
 from app.core import config
 from app.logger import logger
-
-headers = {
-    "Authorization": f"Bearer {config.MS_TOKEN}",
-    "Accept": "application/json;charset=utf-8"
-}
+from app.services.products import get_headers
 
 async def sync_categories():
     try:
         logger.info("Начинаем синхронизацию категорий")
+        
+        headers = get_headers()
         
         url = f"{config.MS_BASE_URL}/entity/productfolder"
         logger.info(f"Запрашиваем категории: {url}")
