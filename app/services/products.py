@@ -4,15 +4,7 @@ from app.db.supabase_client import supabase
 from app.core import config
 from app.logger import logger
 from app.services.storage import upload_image
-
-# Создаем заголовки с базовой аутентификацией
-def get_headers():
-    # Пробуем с более стандартным подходом к токену
-    return {
-        "Authorization": f"Bearer {config.MS_TOKEN}",
-        "Accept": "application/json",
-        "Content-Type": "application/json"
-    }
+from app.services.utils import get_headers
 
 async def sync_products():
     try:

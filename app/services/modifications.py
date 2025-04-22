@@ -3,7 +3,7 @@ from app.db.supabase_client import supabase
 from app.core import config
 from app.logger import logger
 from app.services.storage import upload_image
-from app.services.products import get_headers
+from app.services.utils import get_headers
 
 async def sync_modifications():
     try:

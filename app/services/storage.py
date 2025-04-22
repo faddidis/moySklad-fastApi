@@ -1,7 +1,7 @@
 import httpx
 from app.db.supabase_client import supabase
 from app.core import config
-from app.services.products import get_headers
+from app.services.utils import get_headers
 
 async def upload_image(item):
     if "images" in item and item["images"]["meta"]["size"] > 0:
