@@ -7,6 +7,7 @@ from app.db.supabase_client import supabase
 from app.logger import logger
 import asyncio
 import time
+from datetime import datetime, timedelta
 
 app = FastAPI()
 app.include_router(routes.router)
@@ -66,14 +67,16 @@ async def startup_event():
     
     # Затем запускаем синхронизацию товаров с задержкой в 10 секунд
     scheduler.add_job(run_sync_products, "interval", seconds=config.SYNC_INTERVAL_SECONDS, 
-                     start_date='2025-04-22 00:00:10', id="products_sync")
+                     start_date=datetime.now() + timedelta(seconds=10), id="products_sync")
     
     # Затем запускаем синхронизацию модификаций с задержкой в 20 секунд
     scheduler.add_job(run_sync_modifications, "interval", seconds=config.SYNC_INTERVAL_SECONDS,
-                     start_date='2025-04-22 00:00:20', id="modifications_sync")
+                     start_date=datetime.now() + timedelta(seconds=20), id="modifications_sync")
     
-    # Запускаем немедленную полную синхронизацию
-    scheduler.add_job(run_full_sync, trigger='date', run_date='2025-04-22 00:00:01', id="initial_sync")
+    # Запускаем немедленную полную синхронизацию через 3 секунды после старта
+    scheduler.add_job(run_full_sync, trigger='date', 
+                     run_date=datetime.now() + timedelta(seconds=3), 
+                     id="initial_sync")
 
     supabase.table("sync_status").upsert({"id": 1, "last_sync": "now()"}).execute()
 
