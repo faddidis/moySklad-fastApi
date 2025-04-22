@@ -13,9 +13,10 @@ def get_headers():
     logger.debug(f"Используем токен: {config.MS_TOKEN[:5]}...")
     
     # Более полный набор заголовков
+    # ВНИМАНИЕ: API МойСклад требует строгого формата Accept заголовка!
     headers = {
         "Authorization": f"Bearer {config.MS_TOKEN}",
-        "Accept": "application/json",
+        "Accept": "application/json;charset=utf-8",
         "Content-Type": "application/json",
         "User-Agent": "MoySklad-FastAPI-Sync/1.0"
     }
