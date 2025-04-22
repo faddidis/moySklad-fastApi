@@ -23,8 +23,18 @@ async def sync_products():
         price_response = httpx.get(prices_url, headers=headers)
         log_response_details(price_response, prices_url)
         
-        price_response.raise_for_status()
-        price_types = {p["id"]: p["name"] for p in price_response.json()["rows"]}
+        # Log the parsed JSON response for debugging
+        parsed_json = None # Initialize parsed_json
+        try:
+            parsed_json = price_response.json()
+            logger.debug(f"Получен JSON ответа для типов цен: {parsed_json}") 
+        except Exception as json_e:
+            logger.error(f"Ошибка парсинга JSON для типов цен: {json_e}")
+            logger.error(f"Тело ответа (текст): {price_response.text}")
+            raise # Re-raise the exception to be caught by the main handler
+
+        price_response.raise_for_status() # Check status after parsing
+        price_types = {p["id"]: p["name"] for p in parsed_json["rows"]}
         logger.info(f"Получено {len(price_types)} типов цен")
 
         # Получаем склады как словарь
