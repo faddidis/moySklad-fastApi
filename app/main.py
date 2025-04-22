@@ -10,24 +10,39 @@ import asyncio
 app = FastAPI()
 app.include_router(routes.router)
 
-# Для хранения запущенных задач
-running_tasks = set()
-
 # Обертки для асинхронных функций
 def run_sync_categories():
-    task = asyncio.create_task(categories.sync_categories())
-    running_tasks.add(task)
-    task.add_done_callback(running_tasks.discard)
+    # Создаем новый цикл событий
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        # Запускаем асинхронную функцию в этом цикле
+        loop.run_until_complete(categories.sync_categories())
+    except Exception as e:
+        logger.error(f"Ошибка в планировщике категорий: {str(e)}")
+    finally:
+        # Закрываем цикл событий
+        loop.close()
 
 def run_sync_products():
-    task = asyncio.create_task(products.sync_products())
-    running_tasks.add(task)
-    task.add_done_callback(running_tasks.discard)
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        loop.run_until_complete(products.sync_products())
+    except Exception as e:
+        logger.error(f"Ошибка в планировщике товаров: {str(e)}")
+    finally:
+        loop.close()
 
 def run_sync_modifications():
-    task = asyncio.create_task(modifications.sync_modifications())
-    running_tasks.add(task)
-    task.add_done_callback(running_tasks.discard)
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        loop.run_until_complete(modifications.sync_modifications())
+    except Exception as e:
+        logger.error(f"Ошибка в планировщике модификаций: {str(e)}")
+    finally:
+        loop.close()
 
 @app.on_event("startup")
 async def startup_event():
