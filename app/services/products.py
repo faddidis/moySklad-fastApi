@@ -16,7 +16,7 @@ async def sync_products():
             return
         
         # Получаем типы цен
-        prices_url = f"{config.MS_BASE_URL}/entity/priceType"
+        prices_url = f"{config.MS_BASE_URL}/context/companysettings/pricetype"
         logger.info(f"Запрашиваем типы цен: {prices_url}")
         
         # Делаем запрос с новыми заголовками
