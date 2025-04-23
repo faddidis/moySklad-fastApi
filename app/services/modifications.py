@@ -71,22 +71,24 @@ async def sync_modifications(stores: dict):
                         stock_json = {} # Присваиваем пустой словарь, чтобы избежать падения
                     
                     stock_resp.raise_for_status()
-                    
-                    # --- ИСПРАВЛЕННАЯ ЛОГИКА ОБРАБОТКИ ОСТАТКОВ ---
-                    # Предполагаем, что структура ответа такая же, как для товаров
-                    for mod_stock_row in stock_json.get("rows", []): # Предполагаем, что ключ "rows" существует
+
+                    # --- ПРАВИЛЬНАЯ ЛОГИКА ОБРАБОТКИ ОСТАТКОВ (как в sync_products) ---
+                    for mod_stock_row in stock_json.get("rows", []):
+                        # Обрабатываем stockByStore (тип проверять не нужно, т.к. фильтр по variant)
                         for store_stock_info in mod_stock_row.get("stockByStore", []):
                             store_meta = store_stock_info.get("meta")
-                            if store_meta:
-                                store_name = store_meta.get("name")
-                                store_id = store_meta.get("id")
-                                stock_value = store_stock_info.get("stock")
-                                if store_name:
+                            if store_meta and store_meta.get("href"):
+                                store_id = store_meta["href"].split("/")[-1]
+                                if store_id in stores:
+                                    store_name = stores[store_id]
+                                    stock_value = store_stock_info.get("stock", 0.0)
                                     stock_data[store_name] = stock_value
                                     logger.debug(f"Найден остаток для модификации {mod_id} на складе '{store_name}' (ID: {store_id}): {stock_value}")
                                 else:
                                     logger.warning(f"Склад с ID {store_id} из остатков модификации {mod_id} не найден в общем списке складов.")
-                    # --------------------------------------------------
+                            else:
+                                logger.warning(f"Отсутствует 'meta' или 'href' в данных остатка по складу для модификации {mod_id}: {store_stock_info}")
+                    # ------------------------------------------------------------------
 
                 except Exception as e:
                     logger.warning(f"Ошибка при получении остатков для модификации {mod_name}: {str(e)}")
