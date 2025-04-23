@@ -110,13 +110,13 @@ async def startup_event():
     def run_interval_sync_modifications():
         run_sync_modifications({}) # Передаем пустой словарь
 
-    # Затем запускаем синхронизацию товаров с задержкой
-    scheduler.add_job(run_interval_sync_products, "interval", seconds=config.SYNC_INTERVAL_SECONDS, 
-                     start_date=datetime.now() + timedelta(seconds=10), id="products_sync")
+    # Затем запускаем синхронизацию товаров с задержкой (ВРЕМЕННО ОТКЛЮЧЕНО)
+    # scheduler.add_job(run_interval_sync_products, "interval", seconds=config.SYNC_INTERVAL_SECONDS, 
+    #                  start_date=datetime.now() + timedelta(seconds=10), id="products_sync")
     
-    # Затем запускаем синхронизацию модификаций с задержкой
-    scheduler.add_job(run_interval_sync_modifications, "interval", seconds=config.SYNC_INTERVAL_SECONDS,
-                     start_date=datetime.now() + timedelta(seconds=20), id="modifications_sync")
+    # Затем запускаем синхронизацию модификаций с задержкой (ВРЕМЕННО ОТКЛЮЧЕНО)
+    # scheduler.add_job(run_interval_sync_modifications, "interval", seconds=config.SYNC_INTERVAL_SECONDS,
+    #                  start_date=datetime.now() + timedelta(seconds=20), id="modifications_sync")
 
     supabase.table("sync_status").upsert({"id": 1, "last_sync": "now()"}).execute()
 
