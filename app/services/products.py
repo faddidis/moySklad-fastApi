@@ -101,16 +101,35 @@ async def sync_products():
                     stock_resp = httpx.get(stock_url, headers=headers)
                     log_response_details(stock_resp, stock_url)
                     
+                    # Log the stock response JSON for debugging
+                    stock_json = None
+                    try:
+                        stock_json = stock_resp.json()
+                        logger.debug(f"JSON ответа для остатков товара {product_id}: {stock_json}")
+                    except Exception as json_e:
+                        logger.error(f"Ошибка парсинга JSON остатков товара {product_id}: {json_e}")
+                        logger.error(f"Тело ответа (текст): {stock_resp.text}")
+                        stock_json = {} # Assign empty dict to avoid breaking flow if parsing fails but status is ok
+                    
                     stock_resp.raise_for_status()
                     
-                    for item in stock_resp.json().get("rows", []):
+                    # Process stock data
+                    for item in stock_json.get("rows", []): # Assuming "rows" key exists
                         if "stockStore" in item and "meta" in item["stockStore"]:
                             store_href = item["stockStore"]["meta"]["href"]
                             store_id = store_href.split("/")[-1]
                             if store_id in stores:
                                 stock_data[stores[store_id]] = item["stock"]
+                            else:
+                                logger.warning(f"Склад с ID {store_id} не найден в словаре складов для товара {product_id}.")
+                        else:
+                            logger.warning(f"Отсутствует 'stockStore' или 'meta' в данных остатка для товара {product_id}: {item}")
+
                 except Exception as e:
                     logger.warning(f"Ошибка при получении остатков товара {product_name}: {str(e)}")
+                
+                # Log final stock data before upsert
+                logger.debug(f"Итоговые остатки для товара {product_id} перед сохранением: {stock_data}")
 
                 # Определяем ID категории, если она есть
                 category_id = None

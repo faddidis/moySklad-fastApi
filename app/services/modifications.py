@@ -60,14 +60,29 @@ async def sync_modifications():
                     stock_resp = httpx.get(stock_url, headers=headers)
                     log_response_details(stock_resp, stock_url)
                     
+                    # Log the stock response JSON for debugging
+                    stock_json = None
+                    try:
+                        stock_json = stock_resp.json()
+                        logger.debug(f"JSON ответа для остатков модификации {mod_id}: {stock_json}")
+                    except Exception as json_e:
+                        logger.error(f"Ошибка парсинга JSON остатков модификации {mod_id}: {json_e}")
+                        logger.error(f"Тело ответа (текст): {stock_resp.text}")
+                        stock_json = {} # Assign empty dict to avoid breaking flow
+                    
                     stock_resp.raise_for_status()
                     
-                    # Исправляем ошибку с stockStore
-                    for item in stock_resp.json().get("rows", []):
+                    # Исправляем ошибку с stockStore - Process stock data
+                    for item in stock_json.get("rows", []): # Assuming "rows" key exists
                         if "stockStore" in item and "name" in item["stockStore"]:
                             stock_data[item["stockStore"]["name"]] = item["stock"]
+                        else:
+                             logger.warning(f"Отсутствует 'stockStore' или 'name' в данных остатка для модификации {mod_id}: {item}")
                 except Exception as e:
                     logger.warning(f"Ошибка при получении остатков для модификации {mod_name}: {str(e)}")
+
+                # Log final stock data before upsert
+                logger.debug(f"Итоговые остатки для модификации {mod_id} перед сохранением: {stock_data}")
 
                 # Получаем цены
                 prices = {}
