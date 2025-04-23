@@ -6,7 +6,7 @@ from app.logger import logger
 from app.services.storage import upload_image
 from app.services.utils import get_headers, log_response_details
 
-async def sync_products():
+async def sync_products(stores: dict):
     try:
         logger.info("Начинаем синхронизацию товаров")
         
@@ -33,20 +33,10 @@ async def sync_products():
             logger.error(f"Тело ответа (текст): {price_response.text}")
             raise # Re-raise the exception to be caught by the main handler
 
-        price_response.raise_for_status() # Check status after parsing
-        # The API returns a list directly, not a dict with "rows"
+        price_response.raise_for_status() # Проверяем статус после парсинга
+        # API возвращает список напрямую, а не словарь с ключом "rows"
         price_types = {p["id"]: p["name"] for p in parsed_json} 
         logger.info(f"Получено {len(price_types)} типов цен")
-
-        # Получаем склады как словарь
-        stores_url = f"{config.MS_BASE_URL}/entity/store"
-        logger.info(f"Запрашиваем склады: {stores_url}")
-        store_response = httpx.get(stores_url, headers=headers)
-        log_response_details(store_response, stores_url)
-        
-        store_response.raise_for_status()
-        stores = {s["id"]: s["name"] for s in store_response.json()["rows"]}
-        logger.info(f"Получено {len(stores)} складов")
 
         # Добавляем параметры для запроса товаров
         url = f"{config.MS_BASE_URL}/entity/product"
@@ -109,26 +99,30 @@ async def sync_products():
                     except Exception as json_e:
                         logger.error(f"Ошибка парсинга JSON остатков товара {product_id}: {json_e}")
                         logger.error(f"Тело ответа (текст): {stock_resp.text}")
-                        stock_json = {} # Assign empty dict to avoid breaking flow if parsing fails but status is ok
+                        stock_json = {} # Присваиваем пустой словарь, чтобы избежать падения, если парсинг не удался, но статус OK
                     
                     stock_resp.raise_for_status()
                     
-                    # Process stock data
-                    for item in stock_json.get("rows", []): # Assuming "rows" key exists
-                        if "stockStore" in item and "meta" in item["stockStore"]:
-                            store_href = item["stockStore"]["meta"]["href"]
-                            store_id = store_href.split("/")[-1]
-                            if store_id in stores:
-                                stock_data[stores[store_id]] = item["stock"]
+                    # Обработка данных об остатках
+                    for product_stock_row in stock_json.get("rows", []): # Предполагаем, что ключ "rows" существует
+                        for store_stock_info in product_stock_row.get("stockByStore", []):
+                            store_meta = store_stock_info.get("meta")
+                            if store_meta and store_meta.get("href"):
+                                store_id = store_meta["href"].split("/")[-1]
+                                if store_id in stores:
+                                    store_name = stores[store_id]
+                                    stock_value = store_stock_info.get("stock", 0.0) # Получаем остаток
+                                    stock_data[store_name] = stock_value
+                                    logger.debug(f"Найден остаток для товара {product_id} на складе '{store_name}' (ID: {store_id}): {stock_value}")
+                                else:
+                                    logger.warning(f"Склад с ID {store_id} из остатков товара {product_id} не найден в общем списке складов.")
                             else:
-                                logger.warning(f"Склад с ID {store_id} не найден в словаре складов для товара {product_id}.")
-                        else:
-                            logger.warning(f"Отсутствует 'stockStore' или 'meta' в данных остатка для товара {product_id}: {item}")
+                                logger.warning(f"Отсутствует 'meta' или 'href' в данных остатка по складу для товара {product_id}: {store_stock_info}")
 
                 except Exception as e:
                     logger.warning(f"Ошибка при получении остатков товара {product_name}: {str(e)}")
                 
-                # Log final stock data before upsert
+                # Логируем итоговые остатки перед сохранением
                 logger.debug(f"Итоговые остатки для товара {product_id} перед сохранением: {stock_data}")
 
                 # Определяем ID категории, если она есть

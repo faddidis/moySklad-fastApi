@@ -5,7 +5,7 @@ from app.logger import logger
 from app.services.storage import upload_image
 from app.services.utils import get_headers, log_response_details
 
-async def sync_modifications():
+async def sync_modifications(stores: dict):
     try:
         logger.info("Начинаем синхронизацию модификаций")
         
@@ -68,20 +68,30 @@ async def sync_modifications():
                     except Exception as json_e:
                         logger.error(f"Ошибка парсинга JSON остатков модификации {mod_id}: {json_e}")
                         logger.error(f"Тело ответа (текст): {stock_resp.text}")
-                        stock_json = {} # Assign empty dict to avoid breaking flow
+                        stock_json = {} # Присваиваем пустой словарь, чтобы избежать падения
                     
                     stock_resp.raise_for_status()
                     
-                    # Исправляем ошибку с stockStore - Process stock data
-                    for item in stock_json.get("rows", []): # Assuming "rows" key exists
-                        if "stockStore" in item and "name" in item["stockStore"]:
-                            stock_data[item["stockStore"]["name"]] = item["stock"]
-                        else:
-                             logger.warning(f"Отсутствует 'stockStore' или 'name' в данных остатка для модификации {mod_id}: {item}")
+                    # --- ИСПРАВЛЕННАЯ ЛОГИКА ОБРАБОТКИ ОСТАТКОВ ---
+                    # Предполагаем, что структура ответа такая же, как для товаров
+                    for mod_stock_row in stock_json.get("rows", []): # Предполагаем, что ключ "rows" существует
+                        for store_stock_info in mod_stock_row.get("stockByStore", []):
+                            store_meta = store_stock_info.get("meta")
+                            if store_meta:
+                                store_name = store_meta.get("name")
+                                store_id = store_meta.get("id")
+                                stock_value = store_stock_info.get("stock")
+                                if store_name:
+                                    stock_data[store_name] = stock_value
+                                    logger.debug(f"Найден остаток для модификации {mod_id} на складе '{store_name}' (ID: {store_id}): {stock_value}")
+                                else:
+                                    logger.warning(f"Склад с ID {store_id} из остатков модификации {mod_id} не найден в общем списке складов.")
+                    # --------------------------------------------------
+
                 except Exception as e:
                     logger.warning(f"Ошибка при получении остатков для модификации {mod_name}: {str(e)}")
 
-                # Log final stock data before upsert
+                # Логируем итоговые остатки перед сохранением
                 logger.debug(f"Итоговые остатки для модификации {mod_id} перед сохранением: {stock_data}")
 
                 # Получаем цены
