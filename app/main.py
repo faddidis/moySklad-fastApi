@@ -62,8 +62,29 @@ def run_full_sync():
             store_response = httpx.get(stores_url, headers=headers)
             log_response_details(store_response, stores_url)
             store_response.raise_for_status()
-            stores = {s["id"]: s["name"] for s in store_response.json()["rows"]}
-            logger.info(f"[Full Sync] Получено {len(stores)} складов")
+            
+            # Логируем полный ответ для складов
+            stores_json = store_response.json()
+            logger.debug(f"[Full Sync] JSON ответа для складов: {stores_json}")
+            
+            # Обрабатываем первую страницу
+            current_stores = {s["id"]: s["name"] for s in stores_json.get("rows", [])}
+            stores.update(current_stores)
+            
+            # TODO: Обработка пагинации для складов (если есть nextHref)
+            # next_href = stores_json.get("meta", {}).get("nextHref")
+            # while next_href:
+            #    logger.info(f"[Full Sync] Запрашиваем следующую страницу складов: {next_href}")
+            #    store_response = httpx.get(next_href, headers=headers)
+            #    log_response_details(store_response, next_href)
+            #    store_response.raise_for_status()
+            #    stores_json = store_response.json()
+            #    logger.debug(f"[Full Sync] JSON ответа для складов (страница): {stores_json}")
+            #    current_stores = {s["id"]: s["name"] for s in stores_json.get("rows", [])}
+            #    stores.update(current_stores)
+            #    next_href = stores_json.get("meta", {}).get("nextHref")
+
+            logger.info(f"[Full Sync] Получено {len(stores)} складов (после обработки ответа)")
         else:
             logger.error("[Full Sync] Не удалось получить заголовки для запроса складов.")
     except Exception as e:

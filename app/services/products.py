@@ -105,19 +105,27 @@ async def sync_products(stores: dict):
                     
                     # Обработка данных об остатках
                     for product_stock_row in stock_json.get("rows", []): # Предполагаем, что ключ "rows" существует
-                        for store_stock_info in product_stock_row.get("stockByStore", []):
-                            store_meta = store_stock_info.get("meta")
-                            if store_meta and store_meta.get("href"):
-                                store_id = store_meta["href"].split("/")[-1]
-                                if store_id in stores:
-                                    store_name = stores[store_id]
-                                    stock_value = store_stock_info.get("stock", 0.0) # Получаем остаток
-                                    stock_data[store_name] = stock_value
-                                    logger.debug(f"Найден остаток для товара {product_id} на складе '{store_name}' (ID: {store_id}): {stock_value}")
+                        # --- ДОБАВЛЕНА ПРОВЕРКА ТИПА --- 
+                        # Обрабатываем только строку, относящуюся непосредственно к товару,
+                        # игнорируем строки модификаций, которые API может вернуть здесь же.
+                        if product_stock_row.get("meta", {}).get("type") == "product":
+                            for store_stock_info in product_stock_row.get("stockByStore", []):
+                                store_meta = store_stock_info.get("meta")
+                                if store_meta and store_meta.get("href"):
+                                    store_id = store_meta["href"].split("/")[-1]
+                                    if store_id in stores:
+                                        store_name = stores[store_id]
+                                        stock_value = store_stock_info.get("stock", 0.0) # Получаем остаток
+                                        stock_data[store_name] = stock_value
+                                        logger.debug(f"Найден остаток для товара {product_id} на складе '{store_name}' (ID: {store_id}): {stock_value}")
+                                    else:
+                                        logger.warning(f"Склад с ID {store_id} из остатков товара {product_id} не найден в общем списке складов.")
                                 else:
-                                    logger.warning(f"Склад с ID {store_id} из остатков товара {product_id} не найден в общем списке складов.")
-                            else:
-                                logger.warning(f"Отсутствует 'meta' или 'href' в данных остатка по складу для товара {product_id}: {store_stock_info}")
+                                    logger.warning(f"Отсутствует 'meta' или 'href' в данных остатка по складу для товара {product_id}: {store_stock_info}")
+                        # --------------------------------
+                        else:
+                            logger.debug(f"Пропущена строка с типом '{product_stock_row.get('meta', {}).get('type')}' при обработке остатков товара {product_id}")
+                    # --------------------------------------------------
 
                 except Exception as e:
                     logger.warning(f"Ошибка при получении остатков товара {product_name}: {str(e)}")
